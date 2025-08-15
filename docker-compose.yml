@@ -1,0 +1,144 @@
+services:
+  # Frontend - Vue 3 Application
+  frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile.frontend
+    ports:
+      - "3000:3000"
+    environment:
+      - VITE_API_URL=http://localhost:8000/api/v1
+      - VITE_WS_URL=ws://localhost:8000/ws
+    volumes:
+      - ./src:/app/src
+      - ./public:/app/public
+    depends_on:
+      - backend
+    networks:
+      - financeflow
+
+  # Backend - FastAPI Application
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    ports:
+      - "8000:8000"
+    environment:
+      - DATABASE_URL=postgresql://financeflow:password123@db:5432/financeflow
+      - REDIS_URL=redis://redis:6379/0
+      - SECRET_KEY=your-super-secret-key-change-in-production
+      - ENVIRONMENT=development
+      - CORS_ORIGINS=http://localhost:3000,http://127.0.0.1:3000,http://localhost:8080,http://localhost,http://127.0.0.1
+    volumes:
+      - ./backend/app:/app/app
+    depends_on:
+      - db
+      - redis
+    networks:
+      - financeflow
+
+  # Database - PostgreSQL
+  db:
+    image: postgres:15-alpine
+    environment:
+      - POSTGRES_DB=financeflow
+      - POSTGRES_USER=financeflow
+      - POSTGRES_PASSWORD=password123
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./backend/init.sql:/docker-entrypoint-initdb.d/init.sql
+    ports:
+      - "5432:5432"
+    networks:
+      - financeflow
+
+  # Cache - Redis
+  redis:
+    image: redis:7-alpine
+    command: redis-server --appendonly yes
+    volumes:
+      - redis_data:/data
+    ports:
+      - "6379:6379"
+    networks:
+      - financeflow
+
+  # Background Tasks - Celery Worker
+  celery:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    command: celery -A app.core.celery worker --loglevel=info
+    environment:
+      - DATABASE_URL=postgresql://financeflow:password123@db:5432/financeflow
+      - REDIS_URL=redis://redis:6379/0
+      - SECRET_KEY=your-super-secret-key-change-in-production
+      - ENVIRONMENT=development
+    volumes:
+      - ./backend/app:/app/app
+    depends_on:
+      - db
+      - redis
+    networks:
+      - financeflow
+
+  # Task Scheduler - Celery Beat
+  celery-beat:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    command: celery -A app.core.celery beat --loglevel=info
+    environment:
+      - DATABASE_URL=postgresql://financeflow:password123@db:5432/financeflow
+      - REDIS_URL=redis://redis:6379/0
+      - SECRET_KEY=your-super-secret-key-change-in-production
+      - ENVIRONMENT=development
+    volumes:
+      - ./backend/app:/app/app
+    depends_on:
+      - db
+      - redis
+    networks:
+      - financeflow
+
+  # Monitoring - Flower (Celery monitoring)
+  flower:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    command: celery -A app.core.celery flower
+    ports:
+      - "5555:5555"
+    environment:
+      - DATABASE_URL=postgresql://financeflow:password123@db:5432/financeflow
+      - REDIS_URL=redis://redis:6379/0
+      - SECRET_KEY=your-super-secret-key-change-in-production
+      - ENVIRONMENT=development
+    depends_on:
+      - redis
+    networks:
+      - financeflow
+
+  # Reverse Proxy - Nginx
+  nginx:
+    image: nginx:alpine
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf
+      - ./ssl:/etc/nginx/ssl
+    depends_on:
+      - frontend
+      - backend
+    networks:
+      - financeflow
+
+volumes:
+  postgres_data:
+  redis_data:
+
+networks:
+  financeflow:
+    driver: bridge
