@@ -96,8 +96,8 @@ Welcome to the comprehensive documentation for the Portfolio Management System. 
 
 ### Quick Start (5 minutes)
 ```bash
-git clone <repository-url>
-cd highspring_example
+git clone <https://github.com/LdSH-dev/space_inch>
+cd space_inch
 docker-compose -f docker-compose.dev.yml up -d
 ```
 

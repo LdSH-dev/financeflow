@@ -2,7 +2,7 @@
 
 ## 🎯 Project Overview
 
-This is a **modern portfolio management system** built in **1 day** to demonstrate my full-stack development capabilities across Vue 3, TypeScript, Python, and modern DevOps practices. While some advanced features weren't implemented due to time constraints, the project showcases my proficiency in enterprise-grade architecture, clean code practices, and rapid development skills.
+My name is Leonardo and this is a **modern portfolio management system** built in **1 day** to demonstrate my full-stack development capabilities across Vue 3, TypeScript, Python, and modern DevOps practices. While some advanced features weren't implemented due to time constraints, the project showcases my proficiency in enterprise-grade architecture, clean code practices, and rapid development skills.
 
 ## 🏆 Why You Should Hire Me
 
@@ -138,8 +138,8 @@ highspring_example/
 ### Development Setup
 ```bash
 # Clone the repository
-git clone <repository-url>
-cd highspring_example
+git clone <https://github.com/LdSH-dev/space_inch>
+cd space_inch
 
 # Start all services with Docker Compose
 docker-compose -f docker-compose.dev.yml up -d
