@@ -1,0 +1,30 @@
+# Docker Compose Override Example for Development
+# Copy this file to docker-compose.override.yml if you have port conflicts
+# docker-compose.override.yml is git-ignored by default
+
+version: '3.8'
+
+services:
+  # Use alternative ports if default ones are in use
+  db:
+    ports:
+      - "5433:5432"  # Use 5433 if 5432 is occupied
+  
+  redis:
+    ports:
+      - "6380:6379"  # Use 6380 if 6379 is occupied
+  
+  backend:
+    ports:
+      - "8001:8000"  # Use 8001 if 8000 is occupied
+    environment:
+      # Update CORS origins if using different ports
+      - CORS_ORIGINS=http://localhost:3000,http://localhost:3001
+  
+  frontend:
+    ports:
+      - "3001:3000"  # Use 3001 if 3000 is occupied
+    environment:
+      # Update API URL if backend is on different port
+      - VITE_API_URL=http://localhost:8001/api/v1
+      - VITE_WS_URL=ws://localhost:8001/ws

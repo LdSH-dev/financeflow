@@ -15,6 +15,7 @@ from contextlib import asynccontextmanager
 from app.core.config import settings
 from app.core.database import init_db
 from app.api.v1.router import api_router
+from app.core.seed_data import seed_database
 
 
 @asynccontextmanager
@@ -25,6 +26,13 @@ async def lifespan(app: FastAPI):
     
     # Initialize database
     await init_db()
+    
+    # Seed database with demo data in development mode
+    if settings.ENVIRONMENT == "development":
+        try:
+            await seed_database()
+        except Exception as e:
+            print(f"Warning: Could not seed database: {e}")
 
     
     yield

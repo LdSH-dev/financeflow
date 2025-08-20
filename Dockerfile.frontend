@@ -13,9 +13,11 @@ COPY postcss.config.js ./
 # Install dependencies
 RUN npm install
 
+# Ensure public/ directory exists in the image
+RUN mkdir -p public/
+
 # Copy source code
 COPY src/ ./src/
-COPY public/ ./public/
 COPY index.html ./
 
 # Expose port

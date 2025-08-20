@@ -175,4 +175,4 @@ celerybeat.pid
 dmypy.json
 
 # Pyre type checker
-.pyre/
+.pyre/docker-compose.override.yml
