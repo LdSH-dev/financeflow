@@ -89,9 +89,11 @@ apiClient.interceptors.response.use(
 
           const response = await authAPI.refreshToken({ refresh_token: refreshToken })
           
-          if (response.success) {
-            const newToken = response.data.tokens.accessToken
+          // Backend returns tokens directly, not wrapped in success/data structure
+          if (response.access_token) {
+            const newToken = response.access_token
             localStorage.setItem('accessToken', newToken)
+            localStorage.setItem('refreshToken', response.refresh_token)
             originalRequest.headers.Authorization = `Bearer ${newToken}`
             return apiClient(originalRequest)
           }
@@ -140,16 +142,16 @@ const api = {
 // Authentication API
 export const authAPI = {
   login: (credentials: LoginRequest) => 
-    api.post('/auth/login', credentials),
+    apiClient.post('/auth/login', credentials).then(res => res.data),
     
   register: (userData: RegisterRequest) => 
-    api.post('/auth/register', userData),
+    apiClient.post('/auth/register', userData).then(res => res.data),
     
   logout: (refreshToken: string) => 
-    api.post('/auth/logout', { refreshToken }),
+    apiClient.post('/auth/logout', { refreshToken }).then(res => res.data),
     
   refreshToken: (data: RefreshTokenRequest) => 
-    api.post('/auth/refresh', data),
+    apiClient.post('/auth/refresh', data).then(res => res.data),
     
   forgotPassword: (data: ForgotPasswordRequest) => 
     api.post('/auth/forgot-password', data),
