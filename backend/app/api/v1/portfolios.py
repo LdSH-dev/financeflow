@@ -6,9 +6,10 @@ import time
 from typing import List
 from fastapi import APIRouter, Depends, HTTPException, status, Query
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import select
 
 from app.core.database import get_db
-from app.db.models import User
+from app.db.models import User, Asset
 from app.services.portfolio_service import PortfolioService
 from app.schemas.portfolio import (
     PortfolioCreate, PortfolioUpdate, PortfolioResponse, PortfolioSummary,
@@ -424,6 +425,51 @@ async def recalculate_portfolio_totals(
     await db.commit()
     
     return {"message": "Portfolio totals recalculated successfully"}
+
+
+@router.post("/{portfolio_id}/assets/{asset_id}/recalculate", status_code=status.HTTP_200_OK)
+async def recalculate_asset_totals(
+    portfolio_id: str,
+    asset_id: str,
+    current_user: User = Depends(get_current_user_dependency),
+    db: AsyncSession = Depends(get_db)
+):
+    """Recalculate asset totals from transactions"""
+    from app.services.transaction_service import TransactionService
+    
+    service = PortfolioService(db)
+    transaction_service = TransactionService(db)
+    
+    # Verify portfolio ownership
+    portfolio = await service.get_portfolio(portfolio_id, current_user.id)
+    if not portfolio:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Portfolio not found"
+        )
+    
+    # Get asset
+    query = select(Asset).where(
+        Asset.id == asset_id,
+        Asset.portfolio_id == portfolio_id
+    )
+    result = await db.execute(query)
+    asset = result.scalar_one_or_none()
+    
+    if not asset:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Asset not found"
+        )
+    
+    # Recalculate asset totals
+    await transaction_service._recalculate_asset_totals(asset)
+    
+    # Update portfolio totals
+    await service._update_portfolio_totals(portfolio_id)
+    await db.commit()
+    
+    return {"message": "Asset totals recalculated successfully"}
 
 
 @router.post("/{portfolio_id}/fix-asset-types", status_code=status.HTTP_200_OK)

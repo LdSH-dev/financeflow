@@ -241,35 +241,9 @@ class TransactionService:
 
     async def _update_asset_from_transaction(self, asset: Asset, transaction: Transaction):
         """Update asset based on transaction"""
-        if transaction.transaction_type == TransactionType.BUY:
-            # Add to position
-            old_cost = asset.quantity * asset.average_cost
-            new_cost = transaction.quantity * transaction.price
-            
-            asset.quantity += transaction.quantity
-            asset.total_cost = old_cost + new_cost
-            asset.average_cost = asset.total_cost / asset.quantity if asset.quantity > 0 else Decimal("0.00")
-            
-        elif transaction.transaction_type == TransactionType.SELL:
-            # Reduce position
-            if transaction.quantity > asset.quantity:
-                raise HTTPException(
-                    status_code=status.HTTP_400_BAD_REQUEST,
-                    detail="Cannot sell more shares than owned"
-                )
-            
-            # Calculate cost basis for sold shares
-            sold_cost = transaction.quantity * asset.average_cost
-            asset.quantity -= transaction.quantity
-            asset.total_cost -= sold_cost
-
-        # Update market value
-        asset.market_value = asset.quantity * asset.current_price
-        
-        # Update portfolio totals
-        await self._update_portfolio_totals(asset.portfolio_id)
-        
-        await self.db.commit()
+        # Instead of incremental updates, recalculate everything from transactions
+        # This ensures accuracy and consistency
+        await self._recalculate_asset_totals(asset)
 
     async def _recalculate_asset_totals(self, asset: Asset):
         """Recalculate asset totals from all transactions"""
