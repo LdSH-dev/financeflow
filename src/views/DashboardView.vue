@@ -1,5 +1,5 @@
 <template>
-  <div class="container-responsive py-6">
+  <div class="dashboard-container h-full px-4 sm:px-6 lg:px-8 py-6">
     <!-- Header -->
     <div class="flex items-center justify-between mb-8">
       <div>
@@ -376,8 +376,3 @@ onMounted(() => {
 uiStore.setBreadcrumb(['Dashboard'])
 </script>
 
-<style scoped>
-.container-responsive {
-  @apply container mx-auto px-4 sm:px-6 lg:px-8;
-}
-</style>

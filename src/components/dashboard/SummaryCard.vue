@@ -47,7 +47,6 @@
         <span :class="change >= 0 ? 'text-success-600' : 'text-danger-600'">
           {{ change >= 0 ? '+' : '' }}{{ formatCurrency(change) }}
         </span>
-        <span class="ml-1">today</span>
       </div>
     </div>
   </div>
