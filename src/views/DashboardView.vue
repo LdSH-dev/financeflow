@@ -55,7 +55,7 @@
         />
         
         <SummaryCard
-          title="Today's Change"
+          title="Total Gain/Loss"
           :value="formatCurrency(portfolioStore.totalDayChange)"
           :change-percent="portfolioStore.totalDayChangePercent"
           icon="ArrowTrendingUpIcon"
@@ -135,11 +135,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
 import { 
-  PlusIcon,
-  CurrencyDollarIcon,
-  BriefcaseIcon,
-  ArrowTrendingUpIcon,
-  ChartBarIcon
+  PlusIcon
 } from '@heroicons/vue/24/outline'
 
 // Stores
@@ -370,8 +366,6 @@ const loadDashboardData = async () => {
     isLoading.value = false
   }
 }
-
-
 
 // Lifecycle
 onMounted(() => {

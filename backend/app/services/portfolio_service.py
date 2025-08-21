@@ -316,6 +316,9 @@ class PortfolioService:
             await self._create_transaction_from_quantity_change(
                 asset, original_quantity, asset.quantity
             )
+            
+            # Recalculate asset totals from all transactions to ensure accuracy
+            await self._recalculate_asset_totals(asset)
 
         # Update portfolio totals after updating asset
         await self._update_portfolio_totals(portfolio_id)
@@ -605,3 +608,42 @@ class PortfolioService:
         
         self.db.add(transaction)
         await self.db.flush()  # Ensure transaction is saved
+        
+    async def _recalculate_asset_totals(self, asset: Asset):
+        """Recalculate asset totals from all transactions"""
+        from app.db.models import Transaction, TransactionType
+        
+        # Get all transactions for this asset
+        query = select(Transaction).where(
+            Transaction.asset_id == asset.id
+        ).order_by(Transaction.transaction_date)
+        
+        result = await self.db.execute(query)
+        transactions = result.scalars().all()
+
+        # Reset asset quantities
+        total_quantity = Decimal("0.00")
+        total_cost = Decimal("0.00")
+
+        # Process transactions in chronological order
+        for transaction in transactions:
+            if transaction.transaction_type == TransactionType.BUY:
+                total_quantity += transaction.quantity
+                total_cost += transaction.quantity * transaction.price
+            elif transaction.transaction_type == TransactionType.SELL:
+                if transaction.quantity > total_quantity:
+                    # This shouldn't happen, but handle gracefully
+                    continue
+                
+                # Calculate average cost at time of sale
+                avg_cost = total_cost / total_quantity if total_quantity > 0 else Decimal("0.00")
+                sold_cost = transaction.quantity * avg_cost
+                
+                total_quantity -= transaction.quantity
+                total_cost -= sold_cost
+
+        # Update asset
+        asset.quantity = total_quantity
+        asset.total_cost = total_cost
+        asset.average_cost = total_cost / total_quantity if total_quantity > 0 else Decimal("0.00")
+        asset.market_value = total_quantity * asset.current_price

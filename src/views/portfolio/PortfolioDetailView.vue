@@ -361,8 +361,6 @@ const selectedAsset = ref<Asset | null>(null)
 const portfolioId = computed(() => route.params.id as string)
 const currentPortfolio = computed(() => portfolioStore.currentPortfolio)
 
-
-
 const allocationData = computed(() => {
   if (!currentPortfolio.value?.assets || currentPortfolio.value.assets.length === 0) {
     return { labels: [], datasets: [] }
