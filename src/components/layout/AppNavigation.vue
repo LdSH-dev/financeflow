@@ -9,10 +9,9 @@
   <!-- Sidebar -->
   <div 
     :class="[
-      'relative z-30 w-64 bg-white dark:bg-gray-800 shadow-lg transform transition-transform duration-300 ease-in-out',
-      'lg:translate-x-0 lg:static lg:inset-0',
-      uiStore.sidebarCollapsed ? '-translate-x-full lg:-translate-x-full' : 'translate-x-0',
-      'fixed inset-y-0 left-0 lg:relative lg:block'
+      'fixed lg:absolute inset-y-0 left-0 z-30 bg-white dark:bg-gray-800 shadow-lg transition-all duration-300 ease-in-out',
+      uiStore.sidebarCollapsed ? '-translate-x-full lg:translate-x-0 lg:w-16' : 'translate-x-0 lg:w-64',
+      'w-64 lg:block'
     ]"
   >
     <!-- Logo and brand -->

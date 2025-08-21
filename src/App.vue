@@ -18,14 +18,15 @@
 
     <!-- Main Application -->
     <div v-else class="min-h-screen bg-gray-50 dark:bg-gray-900">
-      <div v-if="isAuthenticated" class="flex h-screen">
+      <div v-if="isAuthenticated" class="h-screen relative">
         <!-- Navigation Sidebar -->
         <AppNavigation />
 
         <!-- Main Content Area -->
-        <div class="flex-1 flex flex-col overflow-hidden">
-          <!-- Top Navigation Bar -->
-          <header class="bg-white dark:bg-gray-800 shadow-sm border-b border-gray-200 dark:border-gray-700">
+        <div class="h-full w-full transition-all duration-300" :class="uiStore.sidebarCollapsed ? 'lg:pl-16' : 'lg:pl-64'">
+          <div class="flex flex-col h-full w-full overflow-hidden">
+            <!-- Top Navigation Bar -->
+            <header class="bg-white dark:bg-gray-800 shadow-sm border-b border-gray-200 dark:border-gray-700">
             <div class="flex items-center justify-between h-16 px-4 sm:px-6 lg:px-8">
               <!-- Mobile menu button -->
               <button
@@ -52,13 +53,11 @@
                   </ol>
                 </nav>
               </div>
-
-
             </div>
           </header>
 
           <!-- Main Content -->
-          <main class="flex-1 overflow-y-auto bg-gray-50 dark:bg-gray-900">
+          <main class="flex-1 overflow-y-auto bg-gray-50 dark:bg-gray-900 w-full">
             <!-- Router View with transitions -->
             <router-view v-slot="{ Component, route }">
               <transition
@@ -70,6 +69,7 @@
               </transition>
             </router-view>
           </main>
+          </div>
         </div>
       </div>
 
