@@ -51,7 +51,8 @@
                 'bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 uppercase'
               ]"
               placeholder="Enter asset symbol (e.g., AAPL, MSFT)"
-              @input="form.symbol = form.symbol.toUpperCase()"
+              @input="handleSymbolInput"
+              @change="getRealTimePrice(form.symbol, 'h')"
             />
             <div v-if="isSearching" class="absolute right-3 top-1/2 transform -translate-y-1/2">
               <svg class="w-4 h-4 animate-spin text-gray-400" fill="none" viewBox="0 0 24 24">
@@ -207,6 +208,10 @@
               ${{ totalCost.toFixed(2) }}
             </span>
           </div>
+          <!-- Show proxy calculated value for demonstration -->
+          <div class="text-xs text-gray-500 mt-1">
+            Proxy calculated: ${{ (form as any).totalValue?.toFixed(2) || '0.00' }}
+          </div>
         </div>
 
         <!-- Form Actions -->
@@ -248,9 +253,10 @@ import { ArrowLeftIcon } from '@heroicons/vue/24/outline'
 // Stores
 import { usePortfolioStore } from '@stores/portfolio'
 import { useUIStore } from '@stores/ui'
+import axios from 'axios';
 
 // Types
-import type { AddAssetRequest, AssetType } from '@types/portfolio'
+import type { AddAssetRequest, AssetType } from '@/types/portfolio'
 
 const router = useRouter()
 const route = useRoute()
@@ -268,13 +274,66 @@ const isAdding = ref(false)
 const isSearching = ref(false)
 const symbolInfo = ref('')
 
-const form = reactive({
+// Original form data
+const formData = reactive({
   symbol: '',
   assetType: 'stock' as AssetType,
   quantity: 0,
   price: 0,
   date: '',
   notes: ''
+})
+
+// JavaScript Proxy to intercept form changes
+// Actually, this more simple than I thought :)
+// This proxy logs every property change and can add validation logic
+const form = new Proxy(formData, {
+  // Intercept property writes (when user types in form fields)
+  set(target, property, value) {
+    console.log(`🔧 Proxy intercepted change: ${String(property)} = ${value}`)
+    
+    // Custom logic for specific fields
+    if (property === 'symbol') {
+      // Auto-uppercase symbol and log the transformation
+      const upperValue = String(value).toUpperCase()
+      console.log(`📝 Symbol auto-transformed: ${value} -> ${upperValue}`)
+      ;(target as any)[property] = upperValue
+      return true
+    }
+    
+    if (property === 'quantity' || property === 'price') {
+      // Log numeric field changes and ensure positive values
+      const numValue = Number(value)
+      if (numValue < 0) {
+        console.log(`⚠️ Proxy blocked negative value for ${String(property)}: ${value}`)
+        return false // Block the change
+      }
+      console.log(`💰 Numeric field updated: ${String(property)} = ${numValue}`)
+    }
+    
+    // Set the value on the target object using type assertion
+    ;(target as any)[property] = value
+    return true
+  },
+  
+  // Intercept property reads
+  get(target, property) {
+    // Add computed properties through proxy
+    if (property === 'isValid') {
+      const valid = target.symbol.length > 0 && target.quantity > 0 && target.price > 0
+      console.log(`✅ Form validation check: ${valid}`)
+      return valid
+    }
+    
+    if (property === 'totalValue') {
+      const total = target.quantity * target.price
+      console.log(`💵 Total value calculated: ${total}`)
+      return total
+    }
+    
+    // Return the original property value using type assertion
+    return (target as any)[property]
+  }
 })
 
 const errors = reactive({
@@ -300,6 +359,32 @@ const todayDate = computed(() => {
   return new Date().toISOString().split('T')[0]
 })
 
+const realTimePrice = ref(0)
+
+const getRealTimePrice = async (symbol: string, type: string) => {
+  if (!symbol || symbol.length < 2) return
+
+  isSearching.value = true
+  try {
+    const response = await axios.get(`https://api.finazon.io/latest/finazon/us_stocks_essential/time_series?ticker=${symbol}&interval=1d&page=0&page_size=1&adjust=all&apikey=99292179d1b04eff9245a001e27226d3ro`)
+    
+    if (response.data?.data?.[0]?.h) {
+      if (type === "h") {
+        realTimePrice.value = response.data.data[0].h
+        form.price = realTimePrice.value
+      } else if (type === "o") {
+        realTimePrice.value = response.data.data[0].o
+        form.price = realTimePrice.value
+      }
+    }
+
+  } catch (error) {
+    console.error('Failed to fetch real-time price:', error)
+  } finally {
+    isSearching.value = false
+  }
+}
+
 const totalCost = computed(() => {
   return form.quantity && form.price ? form.quantity * form.price : 0
 })
@@ -311,6 +396,13 @@ const isFormValid = computed(() => {
          form.price > 0 &&
          !Object.values(errors).some(error => error.length > 0)
 })
+
+// Helper method to handle symbol input and demonstrate proxy
+const handleSymbolInput = (event: Event) => {
+  const target = event.target as HTMLInputElement
+  // The proxy will automatically intercept this assignment and transform it
+  form.symbol = target.value
+}
 
 // Methods
 const validateForm = () => {
@@ -396,12 +488,12 @@ const handleSubmit = async () => {
       console.error('❌ Asset addition failed - success was false')
       uiStore.showError('Error', 'Failed to add asset. Please try again.')
     }
-  } catch (error) {
+  } catch (error: any) {
     console.error('💥 Failed to add asset:', error)
     console.error('🔍 Error details:', {
-      name: error.name,
-      message: error.message,
-      stack: error.stack
+      name: error?.name,
+      message: error?.message,
+      stack: error?.stack
     })
     uiStore.showError('Error', 'Failed to add asset. Please try again.')
   } finally {
@@ -432,13 +524,12 @@ watch(() => form.symbol, async (newSymbol) => {
   } else {
     symbolInfo.value = ''
   }
-}, { debounce: 500 })
+})
 
 // Lifecycle
 onMounted(() => {
   // Set breadcrumb
   uiStore.setBreadcrumb(['Portfolios', 'Add Asset'])
-  
   // Set default date to today
   form.date = todayDate.value
 })

@@ -136,12 +136,13 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watch } from 'vue'
+import { ref, computed, watch, onMounted } from 'vue'
 import { XMarkIcon } from '@heroicons/vue/24/outline'
 import { formatCurrency } from '@utils/format'
 import { usePortfolioStore } from '@stores/portfolio'
 import { useUIStore } from '@stores/ui'
 import type { Asset, UpdateAssetRequest } from '@types/portfolio'
+import axios from 'axios';
 
 interface Props {
   isOpen: boolean
@@ -166,6 +167,26 @@ const form = ref({
   quantity: 0,
   currentPrice: 0
 })
+
+const realTimePrice = ref(0)
+const isSearching = ref(false)
+
+const getRealTimePrice = async (symbol: string) => {
+  if (!symbol || symbol.length < 2) return
+
+  isSearching.value = true
+  try {
+    const response = await axios.get(`https://api.finazon.io/latest/finazon/us_stocks_essential/time_series?ticker=${symbol}&interval=1d&page=0&page_size=1&adjust=all&apikey=99292179d1b04eff9245a001e27226d3ro`)  
+    if (response.data?.data?.[0]?.o) {
+      realTimePrice.value = response.data.data[0].o
+      form.value.currentPrice = realTimePrice.value
+    }
+  } catch (error) {
+    console.error('Failed to fetch real-time price:', error)
+  } finally {
+    isSearching.value = false
+  }
+}
 
 const errors = ref<Record<string, string>>({})
 const isSubmitting = ref(false)
@@ -229,4 +250,8 @@ const handleSubmit = async () => {
     isSubmitting.value = false
   }
 }
+
+onMounted(() => {
+  getRealTimePrice(form.value.symbol)
+})
 </script>
