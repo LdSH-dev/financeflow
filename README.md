@@ -138,8 +138,8 @@ highspring_example/
 ### Development Setup
 ```bash
 # Clone the repository
-git clone <https://github.com/LdSH-dev/space_inch>
-cd space_inch
+git clone <https://github.com/LdSH-dev/financeflow>
+cd financeflow
 
 # Start all services with Docker Compose
 docker-compose -f docker-compose.dev.yml up -d
